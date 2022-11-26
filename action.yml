@@ -1,0 +1,13 @@
+name: 'BEMValidator'
+description: 'Validates that html and css files have correct BEM structure'
+inputs:
+  html:
+    description: 'Path of the html files to test'
+    required: true
+    default: '/**.html'
+outputs:
+  result:
+    description: 'The exit code'
+runs:
+  using: 'node16'
+  main: 'dist/index.js'
