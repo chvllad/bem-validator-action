@@ -166,7 +166,7 @@ const getClassNames = (el: BEMNode): string => {
 };
 
 const traverseGetClassTree = (top: BEMNode, ident: number, truncsNum: number): string => {
-    const start = "| ".repeat(truncsNum).padStart(truncsNum * 2 + ident) + "|-- " + top.el.tagName + getClassNames(top);
+    const start = "│ ".repeat(truncsNum).padStart(truncsNum * 2 + ident) + "├── " + top.el.tagName + getClassNames(top);
     const children = top.children.map((child) => traverseGetClassTree(child, ident, truncsNum + 1));
     return children.length > 0 ? start + '\n' + children.join('\n') : start;
 };
