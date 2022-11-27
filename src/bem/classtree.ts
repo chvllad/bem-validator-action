@@ -36,10 +36,12 @@ enum BEMErrorCode {
     RECURSIVE_ELEMENT,
     ONLY_MODIFIER,
     RECURSIVE_BLOCK,
+    MODIFIER_BEFORE_PARENT,
+    MIXIN_BEFORE_BLOCK,
 }
 
 interface Error1 {
-    code: BEMErrorCode.NO_PARENT_BLOCK | BEMErrorCode.ONLY_MODIFIER,
+    code: BEMErrorCode.NO_PARENT_BLOCK | BEMErrorCode.ONLY_MODIFIER | BEMErrorCode.MODIFIER_BEFORE_PARENT | BEMErrorCode.MIXIN_BEFORE_BLOCK,
     className: string,
     tagName?: string,
     elLocation?: MyLocation,
@@ -55,8 +57,17 @@ interface Error2 {
 
 type BEMError = Error1 | Error2;
 
+const findLastIndex = <T,>(array: T[], cb: (el: T) => boolean): number => {
+    for (let i = array.length - 1; i >= 0; i -= 1) {
+        if (cb(array[i])) {
+            return i;
+        }
+    }
+    return -1;
+};
+
 const checkBEMErrors = (node: BEMNode, errors: BEMError[]) => {
-    for (const cl of node.classes) {
+    for (const [index, cl] of node.classes.entries()) {
         const clBlock = cl.block;
         const clElement = cl.element;
         const clModName = cl.modName;
@@ -85,14 +96,39 @@ const checkBEMErrors = (node: BEMNode, errors: BEMError[]) => {
                     });
                 }
             }
+
+            // MIXIN_BEFORE_BLOCK
+            {
+                const lastBlockIdx = findLastIndex(node.classes, (icl) => !icl.element && !icl.modName);
+                if (lastBlockIdx > index) {
+                    errors.push({
+                        code: BEMErrorCode.MIXIN_BEFORE_BLOCK,
+                        className: cl.className,
+                        tagName: node.el.tagName,
+                        elLocation: node.el.sourceCodeLocation,
+                    });
+                }
+            }
         }
 
-        // ONLY_MODIFIER
         if (clModName) {
-            const needClass = clElement ? `${clBlock}__${clElement}` : clBlock;
-            if (!node.classes.some((icl) => icl.className === needClass)) {
+            const parentClass = clElement ? `${clBlock}__${clElement}` : clBlock;
+            const parentIndex = node.classes.findIndex((icl) => icl.className === parentClass);
+
+            // ONLY_MODIFIER
+            if (parentIndex === -1) {
                 errors.push({
                     code: BEMErrorCode.ONLY_MODIFIER,
+                    className: cl.className,
+                    tagName: node.el.tagName,
+                    elLocation: node.el.sourceCodeLocation,
+                });
+            }
+
+            // MODIFIER_BEFORE_PARENT
+            if (parentIndex > index) {
+                errors.push({
+                    code: BEMErrorCode.MODIFIER_BEFORE_PARENT,
                     className: cl.className,
                     tagName: node.el.tagName,
                     elLocation: node.el.sourceCodeLocation,
@@ -154,6 +190,12 @@ const parseErrors = (errors: BEMError[]): string[] | null => {
             case BEMErrorCode.ONLY_MODIFIER:
                 rv += 'модификатор используется без блока или элемента';
                 break;
+            case BEMErrorCode.MODIFIER_BEFORE_PARENT:
+                rv += 'модификатор используется перед элементом или блоком';
+                break;
+            case BEMErrorCode.MIXIN_BEFORE_BLOCK:
+                rv += 'миксин используется перед блоком';
+                break;
         }
         return rv;
     })
@@ -165,9 +207,9 @@ const getClassNames = (el: BEMNode): string => {
     return cls ? '.' + cls : '';
 };
 
-const traverseGetClassTree = (top: BEMNode, ident: number, truncsNum: number): string => {
-    const start = "│ ".repeat(truncsNum).padStart(truncsNum * 2 + ident) + "├── " + top.el.tagName + getClassNames(top);
-    const children = top.children.map((child) => traverseGetClassTree(child, ident, truncsNum + 1));
+const traverseGetClassTree = (top: BEMNode, ident: number): string => {
+    const start = "├── ".padStart(4 + ident) + top.el.tagName + getClassNames(top);
+    const children = top.children.map((child) => traverseGetClassTree(child, ident + 2));
     return children.length > 0 ? start + '\n' + children.join('\n') : start;
 };
 
@@ -201,7 +243,7 @@ export default class BEMClassTree {
     }
 
     getClassTree(ident: number): string {
-        return traverseGetClassTree(this.#topNode, ident, 0);
+        return traverseGetClassTree(this.#topNode, ident);
     }
 
     checkBEMRules(): string[] | null {
