@@ -1,6 +1,6 @@
 import { MyError } from "./utils";
 
-const classRegex = /^([a-z-0-9]*)(?:__([a-z-0-9]+))?(?:_([a-z-0-9]*))?(?:_([a-z-0-9]*))?$/i;
+const classRegex = /^([a-z-0-9]+)(?:__([a-z-0-9]+))?(?:_([a-z-0-9]+))?(?:_([a-z-0-9]+))?$/i;
 
 export default class BEMClass {
     className: string;
@@ -20,7 +20,7 @@ export default class BEMClass {
     static create(className: string): BEMClass | MyError {
         const result = classRegex.exec(className);
         if (result == null) {
-            return new MyError(`Класс '${className}' не соответствует БЭМу`);
+            return new MyError(`класс '${className}' не соответствует БЭМу`);
         }
         const [_, block, element, modName, modVal] = result;
         return new BEMClass(className, block, element, modName, modVal);

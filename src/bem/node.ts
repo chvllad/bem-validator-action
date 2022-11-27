@@ -15,15 +15,17 @@ export default class BEMNode {
         this.el = el;
     }
 
-    static create(el: MyElement, classes: string | null, classSet: Set<string>, parent: BEMNode | null): BEMNode | MyError {
-        let classArray: BEMClass[] = []
-        if (classes) {
+    static create(el: MyElement, className: string | null, classSet: Set<string>, parent: BEMNode | null): BEMNode | MyError {
+        let classArray: BEMClass[] = [];
+        if (className) {
+            const classes = className?.split(/\s+/);
             for (const cn of classes) {
                 const bem = BEMClass.create(cn);
                 if (bem instanceof MyError) {
-                    return new MyError(`Ошибка в элементе ${el.tagName}: ${bem.data}.`, el.sourceCodeLocation);
+                    return new MyError(`✖ Ошибка в тэге ${el.tagName}: ${bem.data}.`, el.sourceCodeLocation);
                 }
                 classSet.add(cn);
+                classArray.push(bem);
             }
         }
 

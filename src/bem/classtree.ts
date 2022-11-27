@@ -36,18 +36,19 @@ enum BEMErrorCode {
     RECURSIVE_ELEMENT,
     ONLY_MODIFIER,
     RECURSIVE_BLOCK,
-    ELEMENT_OF_ELEMENT,
 }
 
 interface Error1 {
-    code: BEMErrorCode.NO_PARENT_BLOCK | BEMErrorCode.ONLY_MODIFIER | BEMErrorCode.ELEMENT_OF_ELEMENT,
+    code: BEMErrorCode.NO_PARENT_BLOCK | BEMErrorCode.ONLY_MODIFIER,
     className: string,
+    tagName?: string,
     elLocation?: MyLocation,
 }
 
 interface Error2 {
     code: BEMErrorCode.RECURSIVE_ELEMENT | BEMErrorCode.RECURSIVE_BLOCK,
     className: string,
+    tagName?: string,
     elLocation?: MyLocation,
     secondElLocation?: MyLocation,
 }
@@ -65,6 +66,7 @@ const checkBEMErrors = (node: BEMNode, errors: BEMError[]) => {
                 errors.push({
                     code: BEMErrorCode.NO_PARENT_BLOCK,
                     className: cl.className,
+                    tagName: node.el.tagName,
                     elLocation: node.el.sourceCodeLocation,
                 });
             }
@@ -77,6 +79,7 @@ const checkBEMErrors = (node: BEMNode, errors: BEMError[]) => {
                     errors.push({
                         code: BEMErrorCode.RECURSIVE_ELEMENT,
                         className: cl.className,
+                        tagName: node.el.tagName,
                         elLocation: node.el.sourceCodeLocation,
                         secondElLocation: sameParent.el.sourceCodeLocation,
                     });
@@ -91,6 +94,7 @@ const checkBEMErrors = (node: BEMNode, errors: BEMError[]) => {
                 errors.push({
                     code: BEMErrorCode.ONLY_MODIFIER,
                     className: cl.className,
+                    tagName: node.el.tagName,
                     elLocation: node.el.sourceCodeLocation,
                 });
             }
@@ -103,19 +107,9 @@ const checkBEMErrors = (node: BEMNode, errors: BEMError[]) => {
                 errors.push({
                     code: BEMErrorCode.RECURSIVE_BLOCK,
                     className: cl.className,
+                    tagName: node.el.tagName,
                     elLocation: node.el.sourceCodeLocation,
                     secondElLocation: sameParent.el.sourceCodeLocation,
-                });
-            }
-        }
-
-        // ELEMENT_OF_ELEMENT
-        if (clModName) {
-            if (!node.classes.some((icl) => icl.element && icl.className !== cl.className)) {
-                errors.push({
-                    code: BEMErrorCode.ELEMENT_OF_ELEMENT,
-                    className: cl.className,
-                    elLocation: node.el.sourceCodeLocation,
                 });
             }
         }
@@ -142,30 +136,39 @@ const parseErrors = (errors: BEMError[]): string[] | null => {
     }
     return errors.map((err) => {
         let rv = locString(err.elLocation, ' ✖ ') ?? '✖ ';
+        rv += 'Ошибка в тэге' + err.tagName + ': ';
         switch (err.code) {
             case BEMErrorCode.NO_PARENT_BLOCK:
-                rv += 'Элемент используется без блока в родителях';
+                rv += 'элемент используется без блока в родителях';
                 break;
             case BEMErrorCode.RECURSIVE_ELEMENT: {
                 const parentLoc = locString(err.secondElLocation) ?? '';
-                rv += `Элемент вложен в элемент с таким же именем${parentLoc}`;
+                rv += `элемент вложен в элемент с таким же именем${parentLoc}`;
                 break;
             }
             case BEMErrorCode.RECURSIVE_BLOCK: {
                 const parentLoc = locString(err.secondElLocation) ?? '';
-                rv += `Блок вложен в блок с таким же именем${parentLoc}`;
+                rv += `блок вложен в блок с таким же именем${parentLoc}`;
                 break;
             }
-            case BEMErrorCode.ELEMENT_OF_ELEMENT:
-                rv += 'Не может быть элемента у элемента';
-                break;
-        
+            
             default:
                 break;
         }
         return rv;
     })
     
+};
+
+const getClassNames = (el: BEMNode): string => {
+    let cls = el.classes.map((cl) => cl.className).join('.');
+    return cls ? '.' + cls : '';
+};
+
+const traverseGetClassTree = (top: BEMNode, ident: number): string => {
+    const start = "|-- ".padStart(4 + (ident) * 2) + top.el.tagName + getClassNames(top);
+    const children = top.children.map((child) => traverseGetClassTree(child, ident + 1));
+    return children.length > 0 ? start + '\n' + children.join('\n') : start;
 };
 
 export default class BEMClassTree {
@@ -195,6 +198,10 @@ export default class BEMClassTree {
         }
 
         return new BEMClassTree(topNode, allClasses);
+    }
+
+    getClassTree(): string {
+        return traverseGetClassTree(this.#topNode, 0);
     }
 
     checkBEMRules(): string[] | null {
