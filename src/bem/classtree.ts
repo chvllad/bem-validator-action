@@ -136,7 +136,7 @@ const parseErrors = (errors: BEMError[]): string[] | null => {
     }
     return errors.map((err) => {
         let rv = locString(err.elLocation, ' ✖ ') ?? '✖ ';
-        rv += 'Ошибка в тэге' + err.tagName + ': ';
+        rv += 'Ошибка в тэге ' + err.tagName + ': ';
         switch (err.code) {
             case BEMErrorCode.NO_PARENT_BLOCK:
                 rv += 'элемент используется без блока в родителях';
@@ -151,8 +151,8 @@ const parseErrors = (errors: BEMError[]): string[] | null => {
                 rv += `блок вложен в блок с таким же именем${parentLoc}`;
                 break;
             }
-            
-            default:
+            case BEMErrorCode.ONLY_MODIFIER:
+                rv += 'модификатор используется без блока или элемента';
                 break;
         }
         return rv;
@@ -166,8 +166,8 @@ const getClassNames = (el: BEMNode): string => {
 };
 
 const traverseGetClassTree = (top: BEMNode, ident: number): string => {
-    const start = "|-- ".padStart(4 + (ident) * 2) + top.el.tagName + getClassNames(top);
-    const children = top.children.map((child) => traverseGetClassTree(child, ident + 1));
+    const start = "|-- ".padStart(4 + ident) + top.el.tagName + getClassNames(top);
+    const children = top.children.map((child) => traverseGetClassTree(child, ident + 2));
     return children.length > 0 ? start + '\n' + children.join('\n') : start;
 };
 
@@ -200,8 +200,8 @@ export default class BEMClassTree {
         return new BEMClassTree(topNode, allClasses);
     }
 
-    getClassTree(): string {
-        return traverseGetClassTree(this.#topNode, 0);
+    getClassTree(ident: number): string {
+        return traverseGetClassTree(this.#topNode, ident);
     }
 
     checkBEMRules(): string[] | null {

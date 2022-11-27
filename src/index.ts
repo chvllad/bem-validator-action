@@ -31,8 +31,8 @@ const parseHtml = (data: string): string[] | null => {
     }
     const rv = tree.checkBEMRules();
     if (!rv) {
-        printInfo('Дерево классов:');
-        printInfo(tree.getClassTree());
+        printInfo('  Дерево классов:');
+        printInfo(tree.getClassTree(2));
     }
     return rv;
 }
@@ -47,17 +47,16 @@ function run() {
     const matches = glob.sync(html);
 
     for (const fileName of matches) {
-        startGroup('Проверка ' + fileName);
+        printInfo('Проверка ' + fileName);
         const content = fs.readFileSync(fileName);
         const errors = parseHtml(content.toString());
         if(errors) {
-            printInfo('⚠️ Найдены ошибки:');
+            printInfo('  ⚠️ Найдены ошибки:');
             for (const error of errors) {
-                printError(error);
+                printError('  ' + error);
             }
             hasErrors = true;
         }
-        endGroup();
     }
 
     if (hasErrors) {
