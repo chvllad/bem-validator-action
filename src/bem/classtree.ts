@@ -165,9 +165,9 @@ const getClassNames = (el: BEMNode): string => {
     return cls ? '.' + cls : '';
 };
 
-const traverseGetClassTree = (top: BEMNode, ident: number): string => {
-    const start = "|-- ".padStart(4 + ident) + top.el.tagName + getClassNames(top);
-    const children = top.children.map((child) => traverseGetClassTree(child, ident + 2));
+const traverseGetClassTree = (top: BEMNode, ident: number, truncsNum: number): string => {
+    const start = "| ".repeat(truncsNum).padStart(truncsNum * 2 + ident) + "|-- " + top.el.tagName + getClassNames(top);
+    const children = top.children.map((child) => traverseGetClassTree(child, ident, truncsNum + 1));
     return children.length > 0 ? start + '\n' + children.join('\n') : start;
 };
 
@@ -201,7 +201,7 @@ export default class BEMClassTree {
     }
 
     getClassTree(ident: number): string {
-        return traverseGetClassTree(this.#topNode, ident);
+        return traverseGetClassTree(this.#topNode, ident, 0);
     }
 
     checkBEMRules(): string[] | null {
