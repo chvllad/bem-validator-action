@@ -27,12 +27,12 @@
   "dependencies": {
     "@actions/core": "^1.10.0",
     "glob": "^8.1.0",
-    "jsdom": "^21.1.0",
+    "jsdom": "^21.1.2",
     "parse5": "^7.1.2"
   },
   "devDependencies": {
     "@types/glob": "^8.0.1",
-    "@types/jsdom": "^21.1.0",
+    "@types/jsdom": "^21.1.1",
     "@types/parse5": "^7.0.0",
     "@vercel/ncc": "^0.36.1",
     "eslint": "^8.36.0",
