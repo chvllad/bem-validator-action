@@ -35,7 +35,7 @@
     "@types/jsdom": "^21.1.0",
     "@types/parse5": "^7.0.0",
     "@vercel/ncc": "^0.36.1",
-    "eslint": "^8.36.0",
+    "eslint": "^8.41.0",
     "typescript": "^4.9.5"
   }
 }
